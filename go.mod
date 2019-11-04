@@ -1,4 +1,4 @@
-module grpc-tutorial
+module github.com/masunomatiko/grpc_tutorial
 
 go 1.13
 
