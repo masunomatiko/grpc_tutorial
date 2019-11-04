@@ -5,6 +5,7 @@ import (
 	"net"
 
 	pb "github.com/masunomatiko/grpc_tutorial/echo/proto"
+	"google.golang.org/grpc"
 )
 
 func init() {
@@ -21,7 +22,7 @@ func main() {
 	srv := grpc.NewServer()
 	pb.RegisterEchoServiceServer(srv, &echoService{})
 
-	log.Printg("start server on port%s\n", port)
+	log.Printf("start server on port%s\n", port)
 	if err := srv.Serve(lis); err != nil {
 		log.Printf("failed to serve: %v\n", err)
 	}
