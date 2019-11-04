@@ -1,0 +1,29 @@
+package main
+
+import (
+	"log"
+	"net"
+
+	pb "github.com/masunomatiko/grpc_tutorial/echo/proto"
+)
+
+func init() {
+	log.SetFlags(0)
+	log.SetPrefix("[echo] ")
+}
+
+func main() {
+	port := ":50051"
+	lis, err := net.Listen("tcp", port)
+	if err != nil {
+		log.Fatalf("failed to liestn: %v\n", err)
+	}
+	srv := grpc.NewServer()
+	pb.RegisterEchoServiceServer(srv, &echoService{})
+
+	log.Printg("start server on port%s\n", port)
+	if err := srv.Serve(lis); err != nil {
+		log.Printf("failed to serve: %v\n", err)
+	}
+
+}
