@@ -30,7 +30,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	r, err := client.Echo(ctx, &pb.EchoRequest{
-		Message: msg
+		Message: msg,
 	})
 	if err != nil {
 		log.Println(err)
