@@ -12,6 +12,6 @@ message FileResponse {
 }
 
 service FileService {
-    rpc Upload (FileRequest)
-        returns (stream FileResponse);
+    rpc Upload (stream FileRequest)
+        returns (FileResponse);
 }
