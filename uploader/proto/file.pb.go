@@ -127,8 +127,8 @@ var fileDescriptor_9188e3b7e55e1162 = []byte{
 	0x90, 0x9f, 0x57, 0x0c, 0x56, 0x53, 0x9c, 0x59, 0x05, 0xd1, 0xc7, 0x1c, 0x04, 0x66, 0x1b, 0x39,
 	0x40, 0x8c, 0x0e, 0x4e, 0x2d, 0x2a, 0xcb, 0x4c, 0x4e, 0x15, 0x32, 0xe4, 0x62, 0x0b, 0x2d, 0xc8,
 	0xc9, 0x4f, 0x4c, 0x11, 0x12, 0xd4, 0x03, 0x3b, 0x03, 0xc9, 0x5e, 0x29, 0x21, 0x64, 0x21, 0x88,
-	0x99, 0x06, 0x8c, 0x49, 0x6c, 0x60, 0x97, 0x1a, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff, 0x71, 0xb7,
-	0x0c, 0x50, 0xb7, 0x00, 0x00, 0x00,
+	0x99, 0x1a, 0x8c, 0x49, 0x6c, 0x60, 0x97, 0x1a, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff, 0x6d, 0x76,
+	0x75, 0x64, 0xb7, 0x00, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -143,7 +143,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type FileServiceClient interface {
-	Upload(ctx context.Context, in *FileRequest, opts ...grpc.CallOption) (FileService_UploadClient, error)
+	Upload(ctx context.Context, opts ...grpc.CallOption) (FileService_UploadClient, error)
 }
 
 type fileServiceClient struct {
@@ -154,23 +154,18 @@ func NewFileServiceClient(cc *grpc.ClientConn) FileServiceClient {
 	return &fileServiceClient{cc}
 }
 
-func (c *fileServiceClient) Upload(ctx context.Context, in *FileRequest, opts ...grpc.CallOption) (FileService_UploadClient, error) {
+func (c *fileServiceClient) Upload(ctx context.Context, opts ...grpc.CallOption) (FileService_UploadClient, error) {
 	stream, err := c.cc.NewStream(ctx, &_FileService_serviceDesc.Streams[0], "/file.FileService/Upload", opts...)
 	if err != nil {
 		return nil, err
 	}
 	x := &fileServiceUploadClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
 	return x, nil
 }
 
 type FileService_UploadClient interface {
-	Recv() (*FileResponse, error)
+	Send(*FileRequest) error
+	CloseAndRecv() (*FileResponse, error)
 	grpc.ClientStream
 }
 
@@ -178,7 +173,14 @@ type fileServiceUploadClient struct {
 	grpc.ClientStream
 }
 
-func (x *fileServiceUploadClient) Recv() (*FileResponse, error) {
+func (x *fileServiceUploadClient) Send(m *FileRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *fileServiceUploadClient) CloseAndRecv() (*FileResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
 	m := new(FileResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -188,14 +190,14 @@ func (x *fileServiceUploadClient) Recv() (*FileResponse, error) {
 
 // FileServiceServer is the server API for FileService service.
 type FileServiceServer interface {
-	Upload(*FileRequest, FileService_UploadServer) error
+	Upload(FileService_UploadServer) error
 }
 
 // UnimplementedFileServiceServer can be embedded to have forward compatible implementations.
 type UnimplementedFileServiceServer struct {
 }
 
-func (*UnimplementedFileServiceServer) Upload(req *FileRequest, srv FileService_UploadServer) error {
+func (*UnimplementedFileServiceServer) Upload(srv FileService_UploadServer) error {
 	return status.Errorf(codes.Unimplemented, "method Upload not implemented")
 }
 
@@ -204,15 +206,12 @@ func RegisterFileServiceServer(s *grpc.Server, srv FileServiceServer) {
 }
 
 func _FileService_Upload_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(FileRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(FileServiceServer).Upload(m, &fileServiceUploadServer{stream})
+	return srv.(FileServiceServer).Upload(&fileServiceUploadServer{stream})
 }
 
 type FileService_UploadServer interface {
-	Send(*FileResponse) error
+	SendAndClose(*FileResponse) error
+	Recv() (*FileRequest, error)
 	grpc.ServerStream
 }
 
@@ -220,8 +219,16 @@ type fileServiceUploadServer struct {
 	grpc.ServerStream
 }
 
-func (x *fileServiceUploadServer) Send(m *FileResponse) error {
+func (x *fileServiceUploadServer) SendAndClose(m *FileResponse) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func (x *fileServiceUploadServer) Recv() (*FileRequest, error) {
+	m := new(FileRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 var _FileService_serviceDesc = grpc.ServiceDesc{
@@ -232,7 +239,7 @@ var _FileService_serviceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Upload",
 			Handler:       _FileService_Upload_Handler,
-			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "file.proto",
