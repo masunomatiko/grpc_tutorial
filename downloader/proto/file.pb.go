@@ -4,8 +4,12 @@
 package file
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -116,4 +120,111 @@ var fileDescriptor_9188e3b7e55e1162 = []byte{
 	0x87, 0x4b, 0x7e, 0x79, 0x5e, 0x4e, 0x7e, 0x62, 0x8a, 0x90, 0xa0, 0x1e, 0xd8, 0x52, 0x24, 0x5b,
 	0xa4, 0x84, 0x90, 0x85, 0x20, 0xa6, 0x1a, 0x30, 0x26, 0xb1, 0x81, 0xdd, 0x65, 0x0c, 0x08, 0x00,
 	0x00, 0xff, 0xff, 0x7f, 0x12, 0xe7, 0xec, 0xa5, 0x00, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// FileServiceClient is the client API for FileService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type FileServiceClient interface {
+	Download(ctx context.Context, in *FileRequest, opts ...grpc.CallOption) (FileService_DownloadClient, error)
+}
+
+type fileServiceClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewFileServiceClient(cc *grpc.ClientConn) FileServiceClient {
+	return &fileServiceClient{cc}
+}
+
+func (c *fileServiceClient) Download(ctx context.Context, in *FileRequest, opts ...grpc.CallOption) (FileService_DownloadClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_FileService_serviceDesc.Streams[0], "/file.FileService/Download", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &fileServiceDownloadClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type FileService_DownloadClient interface {
+	Recv() (*FileResponse, error)
+	grpc.ClientStream
+}
+
+type fileServiceDownloadClient struct {
+	grpc.ClientStream
+}
+
+func (x *fileServiceDownloadClient) Recv() (*FileResponse, error) {
+	m := new(FileResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// FileServiceServer is the server API for FileService service.
+type FileServiceServer interface {
+	Download(*FileRequest, FileService_DownloadServer) error
+}
+
+// UnimplementedFileServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedFileServiceServer struct {
+}
+
+func (*UnimplementedFileServiceServer) Download(req *FileRequest, srv FileService_DownloadServer) error {
+	return status.Errorf(codes.Unimplemented, "method Download not implemented")
+}
+
+func RegisterFileServiceServer(s *grpc.Server, srv FileServiceServer) {
+	s.RegisterService(&_FileService_serviceDesc, srv)
+}
+
+func _FileService_Download_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(FileRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(FileServiceServer).Download(m, &fileServiceDownloadServer{stream})
+}
+
+type FileService_DownloadServer interface {
+	Send(*FileResponse) error
+	grpc.ServerStream
+}
+
+type fileServiceDownloadServer struct {
+	grpc.ServerStream
+}
+
+func (x *fileServiceDownloadServer) Send(m *FileResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+var _FileService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "file.FileService",
+	HandlerType: (*FileServiceServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Download",
+			Handler:       _FileService_Download_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "file.proto",
 }
