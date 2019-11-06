@@ -3,8 +3,12 @@ package main
 import (
 	"context"
 	"io"
+	"log"
+	"os"
+	"time"
+	"io/ioutil"
 
-	pb "github.com/masunomatiko/grpc_tutorial/downloaader/proto"
+	pb "github.com/masunomatiko/grpc_tutorial/downloader/proto"
 	"google.golang.org/grpc"
 )
 
@@ -28,7 +32,7 @@ func main() {
 	)
 	defer cancel()
 	stream, err := c.Download(ctx, &pb.FileRequest{
-		Name: name
+		Name: name,
 	})
 	if err != nil {
 		log.Fatalf("could not download %s\n", err)
